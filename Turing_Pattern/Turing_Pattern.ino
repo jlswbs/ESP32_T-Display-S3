@@ -72,7 +72,7 @@ void setup(){
   pmedian = (float*)ps_malloc(4*SCR*SCL);
   prange = (float*)ps_malloc(4*SCR*SCL);
   pvar = (float*)ps_malloc(4*SCR*SCL);
-  col = (uint16_t*)malloc(4*SCR);
+  col = (uint16_t*)ps_malloc(4*SCR);
 
   rndrule();
 

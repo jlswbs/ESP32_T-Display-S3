@@ -47,7 +47,7 @@ void rndrule(){
   q = 1;
   adjust = randomf(0.75f, 1.35f);
 
-  for(int i=0; i<SCR*SCL; i++){
+  for(int i=0; i<SCR; i++){
     a[i] = randomf(0.0f, 1.0f);
     b[i] = randomf(0.0f, 1.0f);
     c[i] = randomf(0.0f, 1.0f);
@@ -70,7 +70,7 @@ void setup(){
   a = (float*)ps_malloc(4*SCR*SCL);
   b = (float*)ps_malloc(4*SCR*SCL);
   c = (float*)ps_malloc(4*SCR*SCL);
-  col = (uint16_t*)malloc(4*SCR);
+  col = (uint16_t*)ps_malloc(4*SCR);
 
   rndrule();
 

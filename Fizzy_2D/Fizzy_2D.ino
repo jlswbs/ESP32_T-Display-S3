@@ -16,7 +16,8 @@
 #define PIN_LCD_DC    7
 #define PIN_LCD_WR    8
 #define PIN_LCD_RD    9
-#define PIN_BUTTON    14
+#define PIN_BUTTON_1  14
+#define PIN_BUTTON_2  0
 
 TFT_eSPI tft = TFT_eSPI();
 
@@ -32,7 +33,7 @@ float randomf(float minf, float maxf) {return minf + (esp_random()%(1UL << 31)) 
   float *CellVal = NULL;
   uint8_t Calm = 233;
   int CellIndex = 0;
-  int i,j;
+  bool color = false;  
 
 void rndrule(){
 
@@ -46,7 +47,8 @@ void rndrule(){
 
 void setup(){
 
-  pinMode(PIN_BUTTON, INPUT);
+  pinMode(PIN_BUTTON_1, INPUT);
+  pinMode(PIN_BUTTON_2, INPUT);
 
   srand(time(NULL));
   
@@ -64,11 +66,12 @@ void setup(){
 
 void loop() {
 
-  if(digitalRead(PIN_BUTTON) == false) rndrule();
+  if(digitalRead(PIN_BUTTON_1) == false) rndrule();
+  if(digitalRead(PIN_BUTTON_2) == false) color = !color;
 
-  for (i = 0; i < WIDTH; i++) {
+  for (int i = 0; i < WIDTH; i++) {
     
-    for (j = 0; j < HEIGHT; j++) {
+    for (int j = 0; j < HEIGHT; j++) {
 
       CellIndex = (CellIndex+1)%SCR;
 
@@ -76,7 +79,8 @@ void loop() {
       uint8_t nifna = (uint8_t)round(CellVal[CellIndex]*3.9f)%100;
       uint8_t blugg = (uint8_t)round(CellVal[CellIndex]*5.5f)%100;
 
-      col[i+j*WIDTH] = color565(klimp,nifna,blugg);
+      if(color) col[i+j*WIDTH] = color565(klimp<<1, nifna<<1, blugg<<1);
+      else col[i+j*WIDTH] = color565(klimp<<1, klimp<<1, klimp<<1);      
 
       int below      = (CellIndex+1)%SCR;
       int above      = (CellIndex+SCR-1)%SCR;

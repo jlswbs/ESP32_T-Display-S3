@@ -108,7 +108,7 @@ void setup(){
   direction = (bool*)ps_malloc(4*SCR);
   stepSizes = (float*)ps_malloc(WIDTH);
   radii = (uint8_t*)ps_malloc(WIDTH);
-  col = (uint16_t*)ps_malloc(4*SCR);
+  col = (uint16_t*)ps_malloc(4*SCR);  
 
   rndrule();
 

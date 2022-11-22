@@ -16,7 +16,8 @@
 #define PIN_LCD_DC    7
 #define PIN_LCD_WR    8
 #define PIN_LCD_RD    9
-#define PIN_BUTTON    14
+#define PIN_BUTTON_1  14
+#define PIN_BUTTON_2  0
 
 TFT_eSPI tft = TFT_eSPI();
 
@@ -33,6 +34,7 @@ float randomf(float minf, float maxf) {return minf + (esp_random()%(1UL << 31)) 
   float *p = NULL;
   float *v = NULL;
   float *a = NULL;
+  bool color = false;
 
 void rndrule(){
 
@@ -48,7 +50,8 @@ void rndrule(){
 
 void setup(){
 
-  pinMode(PIN_BUTTON, INPUT);
+  pinMode(PIN_BUTTON_1, INPUT);
+  pinMode(PIN_BUTTON_2, INPUT);
 
   srand(time(NULL));
   
@@ -68,7 +71,8 @@ void setup(){
 
 void loop() {
 
-  if(digitalRead(PIN_BUTTON) == false) rndrule();
+  if(digitalRead(PIN_BUTTON_1) == false) rndrule();
+  if(digitalRead(PIN_BUTTON_2) == false) color = !color;
 
   for (int y = 1; y < HEIGHT-1; y++) {
     for (int x = 1; x < WIDTH-1; x++) {
@@ -80,7 +84,8 @@ void loop() {
     v[i] += a[i];
     p[i] += v[i];
     uint8_t coll = 255 * sinf(p[i]);
-    col[i] = color565(coll, coll, coll);
+    if(color) col[i] = color565(coll<<1, coll<<2, coll<<3);
+    else col[i] = color565(coll, coll, coll);
   }
 
   tft.pushImage(0, 0, WIDTH, HEIGHT, (uint16_t *)col);
