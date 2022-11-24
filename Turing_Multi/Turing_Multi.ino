@@ -16,7 +16,8 @@
 #define PIN_LCD_DC    7
 #define PIN_LCD_WR    8
 #define PIN_LCD_RD    9
-#define PIN_BUTTON    14
+#define PIN_BUTTON_1  14
+#define PIN_BUTTON_2  0
 
 TFT_eSPI tft = TFT_eSPI();
 
@@ -24,22 +25,24 @@ TFT_eSPI tft = TFT_eSPI();
   #define HEIGHT  170
   #define SCR     (WIDTH * HEIGHT)    
 
-uint16_t color565(uint8_t red, uint8_t green, uint8_t blue) { return ((red & 0xF8) << 8) | ((green & 0xFC) << 3) | (blue >> 3); }
-float randomf(float minf, float maxf) {return minf + (esp_random()%(1UL << 31)) * (maxf - minf) / (1UL << 31);}
-
+  uint16_t color565(uint8_t red, uint8_t green, uint8_t blue) { return ((red & 0xF8) << 8) | ((green & 0xFC) << 3) | (blue >> 3); }
+  float randomf(float minf, float maxf) {return minf + (esp_random()%(1UL << 31)) * (maxf - minf) / (1UL << 31);}
+  float mapf(float x, float in_min, float in_max, float out_min, float out_max) { return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min; }
   float sinus[7] = { 0, sinf(TWO_PI/1.0f), sinf(TWO_PI/2.0f),  sinf(TWO_PI/3.0f),  sinf(TWO_PI/4.0f),  sinf(TWO_PI/5.0f),  sinf(TWO_PI/6.0f) };
   float cosinus[7] = { 0, cosf(TWO_PI/1.0f), cosf(TWO_PI/2.0f),  cosf(TWO_PI/3.0f),  cosf(TWO_PI/4.0f),  cosf(TWO_PI/5.0f),  cosf(TWO_PI/6.0f) };
 
   uint16_t *col = NULL;
-
+  bool color = false; 
   int level, levels, radius;
   int blurlevels, symmetry;
   float base;
   float stepScale;
   float stepOffset;
   float blurFactor;
+  uint8_t colOffset;
   uint8_t *radii = NULL;
   float *stepSizes = NULL;
+  float *colShift = NULL;  
   float *grid = NULL;
   float *blurBuffer = NULL;
   float *bestVariation = NULL;
@@ -48,6 +51,7 @@ float randomf(float minf, float maxf) {return minf + (esp_random()%(1UL << 31)) 
   float *activator = NULL;
   float *inhibitor = NULL;
   float *swap = NULL;
+  float *colgrid = NULL;
 
 void rndrule(){
 
@@ -58,6 +62,7 @@ void rndrule(){
   stepScale = randomf(0.01f, 0.2f);
   stepOffset = randomf(0.01f, 0.4f);
   blurFactor = randomf(0.5f, 1.0f);
+  colOffset = esp_random();
 
   levels = (int) (log(fmax(WIDTH,HEIGHT)) / logf(base)) - 1.0f;
   blurlevels = (int) fmax(0, (levels+1) * blurFactor - 0.5f);
@@ -66,8 +71,9 @@ void rndrule(){
     int radius = (int)powf(base, i);
     radii[i] = radius;
     stepSizes[i] = logf(radius) * stepScale + stepOffset;
+    colShift[i] = (i % 2 == 0 ? -1.0f : 1.0f) * (levels-i);    
   }
-
+    
   for (int i = 0; i < SCR; i++) grid[i] = randomf(-1.0f, 1.0f);
 
 }
@@ -89,7 +95,8 @@ int getSymmetry(int i, int w, int h){
 
 void setup(){
 
-  pinMode(PIN_BUTTON, INPUT);
+  pinMode(PIN_BUTTON_1, INPUT);
+  pinMode(PIN_BUTTON_2, INPUT);
 
   srand(time(NULL));
   
@@ -107,8 +114,10 @@ void setup(){
   swap = (float*)ps_malloc(4*SCR);
   direction = (bool*)ps_malloc(4*SCR);
   stepSizes = (float*)ps_malloc(WIDTH);
+  colShift = (float*)ps_malloc(WIDTH);  
   radii = (uint8_t*)ps_malloc(WIDTH);
-  col = (uint16_t*)ps_malloc(4*SCR);  
+  col = (uint16_t*)ps_malloc(4*SCR);
+  colgrid = (float*)ps_malloc(4*SCR);     
 
   rndrule();
 
@@ -116,7 +125,8 @@ void setup(){
 
 void loop() {
 
-  if(digitalRead(PIN_BUTTON) == false) rndrule();
+  if(digitalRead(PIN_BUTTON_1) == false) rndrule();
+  if(digitalRead(PIN_BUTTON_2) == false) color = !color;
 
   if(symmetry >= 1) for(int i = 0; i < SCR; i++) grid[i] = grid[i] * 0.9f + grid[getSymmetry(i, WIDTH, HEIGHT)] * 0.1f;
    
@@ -178,21 +188,34 @@ void loop() {
 
   float smallest = MAXFLOAT;
   float largest = -MAXFLOAT;
+  float colmin = MAXFLOAT;
+  float colmax = -MAXFLOAT;
 
   for (int i = 0; i < SCR; i++) {
     float curStep = stepSizes[bestLevel[i]];
-    if (direction[i])grid[i] += curStep;
-    else grid[i] -= curStep;
+    if (direction[i]) {
+      grid[i] += curStep;
+      colgrid[i] += curStep * colShift[bestLevel[i]];      
+    } else {
+      grid[i] -= curStep;
+      colgrid[i] -= curStep * colShift[bestLevel[i]];          
+    }
     smallest = fmin(smallest, grid[i]);
     largest = fmax(largest, grid[i]);
+    colmin = fmin(colmin, colgrid[i]);
+    colmax = fmax(colmax, colgrid[i]);      
   }
 
   float range = (largest - smallest) / 2.0f;
+  float colrange = (colmax - colmin) / 2.0f;
 
   for(int i = 0; i < SCR; i++){     
-    grid[i] = ((grid[i] - smallest) / range) - 1.0f;   
-    uint16_t coll = 128 + (128 * grid[i]);
-    col[i] = color565(coll, coll, coll);
+    grid[i] = ((grid[i] - smallest) / range) - 1.0f; 
+    colgrid[i] = ((colgrid[i] - colmin) / colrange) - 1.0f;
+    uint8_t coll = 128 + (127.0f * grid[i]);
+    uint8_t colo = mapf(colgrid[i], -1.0f, 1.0f, 0.0f, 127.0f) + colOffset; 
+    if(color) col[i] = color565(colo, coll, (255-coll)/2);
+    else col[i] = color565(coll, coll, coll);
   }
 
   tft.pushImage(0, 0, WIDTH, HEIGHT, (uint16_t *)col);
