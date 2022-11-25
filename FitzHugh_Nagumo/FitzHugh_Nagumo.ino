@@ -31,7 +31,9 @@ TFT_eSPI tft = TFT_eSPI();
   uint16_t *col = NULL;
   bool color = false; 
   float reactionRate = 0.2f;
-
+  float diffusionRate = 0.01f;
+  float kRate = 0.4f;
+  float fRate = 0.09f;  
   float *gridU = NULL;  
   float *gridV = NULL;
   float *gridNext = NULL;
@@ -45,6 +47,10 @@ void rndrule(){
 
   memset((uint16_t *) col, 0, 4*SCR);
 
+  diffusionRate = randomf(0.01f, 0.05f);
+  kRate = randomf(0.1f, 0.5f);
+  fRate = randomf(0.04f, 0.09f);
+  
   for(int i=0;i<SCR;++i){
       
     gridU[i] = 0.5f + randomf(-0.01f, 0.01f);
@@ -64,7 +70,23 @@ void rndrule(){
 
 }
 
-void diffusion(){
+void diffusionV(){
+  
+  for(int i=0;i<WIDTH;++i){
+    for(int j=0;j<HEIGHT;++j){
+
+      gridNext[i+j*WIDTH] = gridV[i+j*WIDTH]+diffusionRate*4.0f*(gridV[((i-1+WIDTH)%WIDTH)+j*WIDTH]+gridV[((i+1)%WIDTH)+j*WIDTH]+gridV[i+((j-1+HEIGHT)%HEIGHT)*WIDTH]+gridV[i+((j+1)%HEIGHT)*WIDTH]-4.0f*gridV[i+j*WIDTH]);
+    
+    }
+  }
+  
+  memcpy(temp, gridV, 4*SCR);
+  memcpy(gridV, gridNext, 4*SCR); 
+  memcpy(gridNext, temp, 4*SCR);
+  
+}
+
+void diffusionU(){
   
   for(int i=0;i<WIDTH;++i){
     for(int j=0;j<HEIGHT;++j){
@@ -95,7 +117,7 @@ void setupF(){
   
   for(int i=0;i<WIDTH;++i){
   
-    for(int j=0;j<HEIGHT;++j) farr[i+j*WIDTH] = 0.02f + i * 0.09f / WIDTH;
+    for(int j=0;j<HEIGHT;++j) farr[i+j*WIDTH] = 0.01f + i * fRate / WIDTH;
   
   }
 
@@ -105,7 +127,7 @@ void setupK(){
 
   for(int i=0;i<WIDTH;++i){
   
-    for(int j=0;j<HEIGHT;++j) karr[i+j*WIDTH] = 0.06f + j * 0.3f / HEIGHT;
+    for(int j=0;j<HEIGHT;++j) karr[i+j*WIDTH] = 0.06f + j * kRate / HEIGHT;
     
   }
 
@@ -142,7 +164,8 @@ void loop() {
   if(digitalRead(PIN_BUTTON_1) == false) rndrule();
   if(digitalRead(PIN_BUTTON_2) == false) color = !color;
 
-  diffusion();
+  diffusionU();
+  diffusionV();
   reaction();
 
   for(int i = 0; i < SCR; i++){     
