@@ -24,21 +24,18 @@ TFT_eSPI tft = TFT_eSPI();
   #define WIDTH   320
   #define HEIGHT  170
   #define SCR     (WIDTH * HEIGHT)
+  #define PARTICLES 12  
 
   uint16_t color565(uint8_t red, uint8_t green, uint8_t blue) { return ((red & 0xF8) << 8) | ((green & 0xFC) << 3) | (blue >> 3); }
-  float randomf(float minf, float maxf) {return minf + (esp_random()%(1UL << 31)) * (maxf - minf) / (1UL << 31);}
+  float distance(int x1, int y1, int x2, int y2) { return sqrtf(powf(x2 - x1, 2.0f) + powf(y2 - y1, 2.0f)); }
 
   uint16_t *col = NULL;
-  bool color = false; 
-  #define PARTICLES 12
-
-  float mindist = 0;
+  bool color = false;
+  float mindist;
   int x[PARTICLES];
   int y[PARTICLES];
   int dx[PARTICLES];
   int dy[PARTICLES];
-
-float distance(int x1, int y1, int x2, int y2) { return sqrtf(powf(x2 - x1, 2.0f) + powf(y2 - y1, 2.0f)); }
 
 void rndrule(){
 
@@ -46,10 +43,10 @@ void rndrule(){
 
   for (int i=0; i<PARTICLES; i++) {
     
-    x[i] = rand()%WIDTH;
-    y[i] = rand()%HEIGHT;
-    dx[i] = rand()%8;
-    dy[i] = rand()%8;
+    x[i] = esp_random()%WIDTH;
+    y[i] = esp_random()%HEIGHT;
+    dx[i] = esp_random()%8;
+    dy[i] = esp_random()%8;
     
   }
 
