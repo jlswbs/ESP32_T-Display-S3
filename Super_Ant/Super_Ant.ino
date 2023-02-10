@@ -29,7 +29,7 @@ TFT_eSPI tft = TFT_eSPI();
   #define LENGHT  32
 
   uint16_t *col = NULL;
-  uint16_t *state = NULL;
+  uint8_t *state = NULL;
   uint16_t antX = WIDTH/2;
   uint16_t antY = HEIGHT/2;
   uint8_t direction;
@@ -40,7 +40,7 @@ TFT_eSPI tft = TFT_eSPI();
 void rndrule(){
 
   memset((uint8_t *) col, 0, 4*SCR);
-  memset((bool *) state, 0, 4*SCR);  
+  memset((uint8_t *) state, 0, 4*SCR);  
 
   antX = WIDTH/2;
   antY = HEIGHT/2;
@@ -115,7 +115,7 @@ void setup(){
   tft.fillScreen(TFT_BLACK);
 
   col = (uint16_t*)ps_malloc(4*SCR);
-  state = (uint16_t*)ps_malloc(4*SCR);
+  state = (uint8_t*)ps_malloc(4*SCR);
 
   rndrule();
 
